@@ -858,6 +858,11 @@ async function directUploadFinished() {
                         addMessage('success', 'msgUploadComplete');
 
                         console.log("YAYYYYY!!!")
+                        
+                        if (window.opener && !window.opener.closed) {
+                            window.opener.location.reload();
+                            window.close();
+                        }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
