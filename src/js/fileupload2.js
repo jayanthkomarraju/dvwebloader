@@ -806,6 +806,7 @@ function uploadFinished(fileupload) {
 }
 
 async function directUploadFinished() {
+
     numDone = finishFile();
     var total = curFile;
     var inProgress = filesInProgress;
@@ -814,6 +815,7 @@ async function directUploadFinished() {
     if (directUploadEnabled) {
         if (inList === 0) {
             if (total === numDone) {
+                //   $('button[id$="AllUploadsFinished"]').trigger('click');
                 console.log("All files in S3");
                 addMessage('info', 'msgUploadCompleteRegistering');
                 let body = [];
@@ -854,7 +856,7 @@ async function directUploadFinished() {
                     success: function(body, statusText, jqXHR) {
                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
                         addMessage('success', 'msgUploadComplete');
-                        // Refresh the parent tab and close the current tab
+
                         if (window.opener && !window.opener.closed) {
                             window.opener.location.reload();
                             window.close();
@@ -887,87 +889,6 @@ async function directUploadFinished() {
     await sleep(delay);
     inDataverseCall = false;
 }
-
-
-// async function directUploadFinished() {
-
-//     numDone = finishFile();
-//     var total = curFile;
-//     var inProgress = filesInProgress;
-//     var inList = fileList.length;
-//     console.log(inList + ' : ' + numDone + ' : ' + total + ' : ' + inProgress);
-//     if (directUploadEnabled) {
-//         if (inList === 0) {
-//             if (total === numDone) {
-//                 //   $('button[id$="AllUploadsFinished"]').trigger('click');
-//                 console.log("All files in S3");
-//                 addMessage('info', 'msgUploadCompleteRegistering');
-//                 let body = [];
-//                 for (let i = 0; i < toRegisterFileList.length; i++) {
-//                     let fup = toRegisterFileList[i];
-//                     console.log(fup.file.webkitRelativePath + ' : ' + fup.storageId);
-//                     let entry = {};
-//                     entry.storageIdentifier = fup.storageId;
-//                     entry.fileName = fup.file.name;
-//                     let path = fup.file.webkitRelativePath;
-//                     console.log(path);
-//                     path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
-//                     if (path.length !== 0) {
-//                         entry.directoryLabel = path;
-//                     }
-//                     entry.checksum = {};
-//                     entry.checksum['@type'] = checksumAlgName;
-//                     entry.checksum['@value'] = fup.hashVal;
-//                     entry.mimeType = fup.file.type;
-//                     if (entry.mimeType == '') {
-//                         entry.mimeType = 'application/octet-stream';
-//                     }
-//                     body.push(entry);
-//                 }
-//                 console.log(JSON.stringify(body));
-//                 let fd = new FormData();
-//                 fd.append('jsonData', JSON.stringify(body));
-//                 $.ajax({
-//                     url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
-//                     headers: { "X-Dataverse-key": apiKey },
-//                     type: 'POST',
-//                     enctype: 'multipart/form-data',
-//                     contentType: false,
-//                     context: this,
-//                     cache: false,
-//                     data: fd,
-//                     processData: false,
-//                     success: function(body, statusText, jqXHR) {
-//                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
-//                         addMessage('success', 'msgUploadComplete');
-//                     },
-//                     error: function(jqXHR, textStatus, errorThrown) {
-//                         console.log('Failure: ' + jqXHR.status);
-//                         console.log('Failure: ' + errorThrown);
-//                         //uploadFailure(jqXHR, thisFile);
-//                     }
-//                 });
-//                 //stop observer when we're done
-//                 if (observer !== null) {
-//                     observer.disconnect();
-//                     observer = null;
-//                 }
-//             }
-//         } else {
-//             if ((inProgress < 4) && (inProgress < inList)) {
-//                 filesInProgress = filesInProgress + 1;
-//                 for (let i = 0; i < fileList.length; i++) {
-//                     if (fileList[i].state === UploadState.QUEUED) {
-//                         fileList[i].startRequestForDirectUploadUrl();
-//                         break;
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     await sleep(delay);
-//     inDataverseCall = false;
-// }
 
 async function uploadFailure(jqXHR, upid, filename) {
     // This handles HTTP errors (non-20x reponses) such as 0 (no connection at all), 413 (Request too large),
