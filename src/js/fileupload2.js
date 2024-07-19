@@ -16,7 +16,7 @@ var UploadState = {
     FAILED: 'failed'
 };
 //true indicates direct upload is being used, but cancel may set it back to false at which point direct upload functions should not do further work
-var directUploadEnabled = false;
+var directUploadEnabled = true;
 var directUploadReport = true;
 var checksumAlgName;
 //How many files have started being processed but aren't yet being uploaded
@@ -806,7 +806,6 @@ function uploadFinished(fileupload) {
 }
 
 async function directUploadFinished() {
-
     numDone = finishFile();
     var total = curFile;
     var inProgress = filesInProgress;
@@ -815,52 +814,24 @@ async function directUploadFinished() {
     if (directUploadEnabled) {
         if (inList === 0) {
             if (total === numDone) {
-                //   $('button[id$="AllUploadsFinished"]').trigger('click');
-                console.log("All files in S3");
-                addMessage('info', 'msgUploadCompleteRegistering');
-                let body = [];
-                for (let i = 0; i < toRegisterFileList.length; i++) {
-                    let fup = toRegisterFileList[i];
-                    console.log(fup.file.webkitRelativePath + ' : ' + fup.storageId);
-                    let entry = {};
-                    entry.storageIdentifier = fup.storageId;
-                    entry.fileName = fup.file.name;
-                    let path = fup.file.webkitRelativePath;
-                    console.log(path);
-                    path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
-                    if (path.length !== 0) {
-                        entry.directoryLabel = path;
-                    }
-                    entry.checksum = {};
-                    entry.checksum['@type'] = checksumAlgName;
-                    entry.checksum['@value'] = fup.hashVal;
-                    entry.mimeType = fup.file.type;
-                    if (entry.mimeType == '') {
-                        entry.mimeType = 'application/octet-stream';
-                    }
-                    body.push(entry);
-                }
-                console.log(JSON.stringify(body));
-                let fd = new FormData();
-                fd.append('jsonData', JSON.stringify(body));
+                // Check if the version is a draft or a published version
                 $.ajax({
-                    url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
+                    url: siteUrl + '/api/datasets/:persistentId/versions/:latest?persistentId=' + datasetPid,
                     headers: { "X-Dataverse-key": apiKey },
-                    type: 'POST',
-                    enctype: 'multipart/form-data',
-                    contentType: false,
+                    type: 'GET',
                     context: this,
                     cache: false,
-                    data: fd,
+                    dataType: "json",
                     processData: false,
                     success: function(body, statusText, jqXHR) {
-                        console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
+                        let data = body.data;
+                        let version = data.versionState === "DRAFT" ? "DRAFT" : data.versionNumber + "." + data.versionMinorNumber;
+                        console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=' + version);
                         addMessage('success', 'msgUploadComplete');
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
-                        //uploadFailure(jqXHR, thisFile);
                     }
                 });
                 //stop observer when we're done
@@ -884,6 +855,7 @@ async function directUploadFinished() {
     await sleep(delay);
     inDataverseCall = false;
 }
+
 
 async function uploadFailure(jqXHR, upid, filename) {
     // This handles HTTP errors (non-20x reponses) such as 0 (no connection at all), 413 (Request too large),
