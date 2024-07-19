@@ -16,7 +16,7 @@ var UploadState = {
     FAILED: 'failed'
 };
 //true indicates direct upload is being used, but cancel may set it back to false at which point direct upload functions should not do further work
-var directUploadEnabled = true;
+var directUploadEnabled = false;
 var directUploadReport = true;
 var checksumAlgName;
 //How many files have started being processed but aren't yet being uploaded
@@ -805,6 +805,86 @@ function uploadFinished(fileupload) {
     }
 }
 
+// async function directUploadFinished() {
+
+//     numDone = finishFile();
+//     var total = curFile;
+//     var inProgress = filesInProgress;
+//     var inList = fileList.length;
+//     console.log(inList + ' : ' + numDone + ' : ' + total + ' : ' + inProgress);
+//     if (directUploadEnabled) {
+//         if (inList === 0) {
+//             if (total === numDone) {
+//                 //   $('button[id$="AllUploadsFinished"]').trigger('click');
+//                 console.log("All files in S3");
+//                 addMessage('info', 'msgUploadCompleteRegistering');
+//                 let body = [];
+//                 for (let i = 0; i < toRegisterFileList.length; i++) {
+//                     let fup = toRegisterFileList[i];
+//                     console.log(fup.file.webkitRelativePath + ' : ' + fup.storageId);
+//                     let entry = {};
+//                     entry.storageIdentifier = fup.storageId;
+//                     entry.fileName = fup.file.name;
+//                     let path = fup.file.webkitRelativePath;
+//                     console.log(path);
+//                     path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
+//                     if (path.length !== 0) {
+//                         entry.directoryLabel = path;
+//                     }
+//                     entry.checksum = {};
+//                     entry.checksum['@type'] = checksumAlgName;
+//                     entry.checksum['@value'] = fup.hashVal;
+//                     entry.mimeType = fup.file.type;
+//                     if (entry.mimeType == '') {
+//                         entry.mimeType = 'application/octet-stream';
+//                     }
+//                     body.push(entry);
+//                 }
+//                 console.log(JSON.stringify(body));
+//                 let fd = new FormData();
+//                 fd.append('jsonData', JSON.stringify(body));
+//                 $.ajax({
+//                     url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
+//                     headers: { "X-Dataverse-key": apiKey },
+//                     type: 'POST',
+//                     enctype: 'multipart/form-data',
+//                     contentType: false,
+//                     context: this,
+//                     cache: false,
+//                     data: fd,
+//                     processData: false,
+//                     success: function(body, statusText, jqXHR) {
+//                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
+//                         addMessage('success', 'msgUploadComplete');
+//                     },
+//                     error: function(jqXHR, textStatus, errorThrown) {
+//                         console.log('Failure: ' + jqXHR.status);
+//                         console.log('Failure: ' + errorThrown);
+//                         //uploadFailure(jqXHR, thisFile);
+//                     }
+//                 });
+//                 //stop observer when we're done
+//                 if (observer !== null) {
+//                     observer.disconnect();
+//                     observer = null;
+//                 }
+//             }
+//         } else {
+//             if ((inProgress < 4) && (inProgress < inList)) {
+//                 filesInProgress = filesInProgress + 1;
+//                 for (let i = 0; i < fileList.length; i++) {
+//                     if (fileList[i].state === UploadState.QUEUED) {
+//                         fileList[i].startRequestForDirectUploadUrl();
+//                         break;
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     await sleep(delay);
+//     inDataverseCall = false;
+// }
+
 async function directUploadFinished() {
     numDone = finishFile();
     var total = curFile;
@@ -814,24 +894,75 @@ async function directUploadFinished() {
     if (directUploadEnabled) {
         if (inList === 0) {
             if (total === numDone) {
-                // Check if the version is a draft or a published version
+                //   $('button[id$="AllUploadsFinished"]').trigger('click');
+                console.log("All files in S3");
+                addMessage('info', 'msgUploadCompleteRegistering');
+                let body = [];
+                for (let i = 0; i < toRegisterFileList.length; i++) {
+                    let fup = toRegisterFileList[i];
+                    console.log(fup.file.webkitRelativePath + ' : ' + fup.storageId);
+                    let entry = {};
+                    entry.storageIdentifier = fup.storageId;
+                    entry.fileName = fup.file.name;
+                    let path = fup.file.webkitRelativePath;
+                    console.log(path);
+                    path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
+                    if (path.length !== 0) {
+                        entry.directoryLabel = path;
+                    }
+                    entry.checksum = {};
+                    entry.checksum['@type'] = checksumAlgName;
+                    entry.checksum['@value'] = fup.hashVal;
+                    entry.mimeType = fup.file.type;
+                    if (entry.mimeType == '') {
+                        entry.mimeType = 'application/octet-stream';
+                    }
+                    body.push(entry);
+                }
+                console.log(JSON.stringify(body));
+                let fd = new FormData();
+                fd.append('jsonData', JSON.stringify(body));
                 $.ajax({
-                    url: siteUrl + '/api/datasets/:persistentId/versions/:latest?persistentId=' + datasetPid,
+                    url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
                     headers: { "X-Dataverse-key": apiKey },
-                    type: 'GET',
+                    type: 'POST',
+                    enctype: 'multipart/form-data',
+                    contentType: false,
                     context: this,
                     cache: false,
-                    dataType: "json",
+                    data: fd,
                     processData: false,
                     success: function(body, statusText, jqXHR) {
-                        let data = body.data;
-                        let version = data.versionState === "DRAFT" ? "DRAFT" : data.versionNumber + "." + data.versionMinorNumber;
-                        console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=' + version);
-                        addMessage('success', 'msgUploadComplete');
+                        // Check if the version is a draft or a published version
+                        $.ajax({
+                            url: siteUrl + '/api/datasets/:persistentId/versions/:latest?persistentId=' + datasetPid,
+                            headers: { "X-Dataverse-key": apiKey },
+                            type: 'GET',
+                            context: this,
+                            cache: false,
+                            dataType: "json",
+                            processData: false,
+                            success: function(body, statusText, jqXHR) {
+                                let data = body.data;
+                                let version = data.versionState === "DRAFT" ? "DRAFT" : data.versionNumber + "." + data.versionMinorNumber;
+                                console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=' + version);
+                                addMessage('success', 'msgUploadComplete');
+                                // Refresh the original tab and close the upload tab
+                                if (window.opener && !window.opener.closed) {
+                                    window.opener.location.reload();
+                                    window.close();
+                                }
+                            },
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                console.log('Failure: ' + jqXHR.status);
+                                console.log('Failure: ' + errorThrown);
+                            }
+                        });
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
+                        //uploadFailure(jqXHR, thisFile);
                     }
                 });
                 //stop observer when we're done
