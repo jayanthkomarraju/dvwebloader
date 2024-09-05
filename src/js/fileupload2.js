@@ -857,18 +857,10 @@ async function directUploadFinished() {
                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
                         addMessage('success', 'msgUploadComplete');
 
-                        
-                        // if (window.opener && !window.opener.closed) {
-                        //     window.opener.location.reload();
-                        //     window.close();
-                        // }
-
                         if (window.opener && !window.opener.closed) {
-                            setTimeout(function() {
-                                window.opener.location.reload();
-                                window.close();
-                            }, 2000); // 2000ms = 2 seconds
+                            window.opener.location.reload();
                         }
+
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
